@@ -1,3 +1,5 @@
+#include <stdbool.h>
+
 volatile int pixel_buffer_start; // global variable
 void clear_screen();
 void draw_line(int x_start, int y_start, int x_end, int y_end, short int line_color);
@@ -37,7 +39,7 @@ int main(void)
     {
         // initialize direction
         Box[i].dx = ((rand() % 2) * 2) - 1; // 1 or -1
-        Box[i].dy = ((rand() % 2) * 2) - 1; // 1 or -1
+        Box[i].dy = 0;                      // 1 or -1
 
         // initialize x and y positions
         Box[i].x = rand() % 319;
@@ -55,15 +57,18 @@ int main(void)
     wait_for_sync();
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *pixel_ctrl_ptr;
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
+
     /* set back pixel buffer to start of SDRAM memory */
     *(pixel_ctrl_ptr + 1) = 0xC0000000;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
 
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+
+    bool cleared = false;
     while (1)
     {
         // clear_screen_partial();
-        clear();
+        clear_screen();
 
         // code for drawing the boxes and lines
         drawMeteor();
@@ -87,7 +92,7 @@ void clear()
             plot_pixel(SDRAM[i].x, SDRAM[i].y, 0x000);
             plot_pixel(SDRAM[i].x + 1, SDRAM[i].y, 0x000);
             plot_pixel(SDRAM[i].x, SDRAM[i].y + 1, 0x0000);
-            plot_pixel(SDRAM[i].x + 1, SDRAM[i].y + 1, 0x00);
+            plot_pixel(SDRAM[i].x + 1, SDRAM[i].y + 1, 0x000);
         }
     }
     // if start buffer is On chip memory
@@ -98,7 +103,7 @@ void clear()
             plot_pixel(ONCHIP[i].x, ONCHIP[i].y, 0x000);
             plot_pixel(ONCHIP[i].x + 1, ONCHIP[i].y, 0x000);
             plot_pixel(ONCHIP[i].x, ONCHIP[i].y + 1, 0x0000);
-            plot_pixel(ONCHIP[i].x + 1, ONCHIP[i].y + 1, 0x00);
+            plot_pixel(ONCHIP[i].x + 1, ONCHIP[i].y + 1, 0x000);
         }
     }
 }
@@ -109,10 +114,10 @@ void drawMeteor()
     for (int i = 0; i < 8; i++)
     {
         // drawing rectangles
-        plot_pixel(Box[i].x, Box[i].y, 0x001F);
-        plot_pixel(Box[i].x + 1, Box[i].y, 0x001F);
-        plot_pixel(Box[i].x, Box[i].y + 1, 0x001F);
-        plot_pixel(Box[i].x + 1, Box[i].y + 1, 0x001F);
+        plot_pixel(Box[i].x, Box[i].y, 0xFFFF);
+        plot_pixel(Box[i].x + 1, Box[i].y, 0xFFFF);
+        plot_pixel(Box[i].x, Box[i].y + 1, 0xFFFF);
+        plot_pixel(Box[i].x + 1, Box[i].y + 1, 0xFFFF);
     }
 }
 
@@ -137,12 +142,6 @@ void update()
         if ((Box[i].x) >= 319 || Box[i].x <= 0)
         {
             Box[i].dx *= -1;
-        }
-
-        // if reached top side or bottom side, reverse direction
-        if ((Box[i].y) >= 239 || Box[i].y <= 0)
-        {
-            Box[i].dy *= -1;
         }
 
         // actually move
