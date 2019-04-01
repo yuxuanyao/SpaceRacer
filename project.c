@@ -3,7 +3,7 @@ void clear_screen();
 void draw_line(int x_start, int y_start, int x_end, int y_end, short int line_color);
 void plot_pixel(int x, int y, short int line_color);
 void wait_for_sync();
-void draw();
+void drawMeteor();
 void update();
 void clear();
 
@@ -66,7 +66,7 @@ int main(void)
         clear();
 
         // code for drawing the boxes and lines
-        draw();
+        drawMeteor();
 
         // code for updating the locations of boxes
         update();
@@ -88,14 +88,6 @@ void clear()
             plot_pixel(SDRAM[i].x + 1, SDRAM[i].y, 0x000);
             plot_pixel(SDRAM[i].x, SDRAM[i].y + 1, 0x0000);
             plot_pixel(SDRAM[i].x + 1, SDRAM[i].y + 1, 0x00);
-            if (i == 7)
-            {
-                draw_line(SDRAM[i].x, SDRAM[i].y, SDRAM[0].x, SDRAM[0].y, 0x0000);
-            }
-            else
-            {
-                draw_line(SDRAM[i].x, SDRAM[i].y, SDRAM[i + 1].x, SDRAM[i + 1].y, 0x0000);
-            }
         }
     }
     // if start buffer is On chip memory
@@ -107,40 +99,20 @@ void clear()
             plot_pixel(ONCHIP[i].x + 1, ONCHIP[i].y, 0x000);
             plot_pixel(ONCHIP[i].x, ONCHIP[i].y + 1, 0x0000);
             plot_pixel(ONCHIP[i].x + 1, ONCHIP[i].y + 1, 0x00);
-            if (i == 7)
-            {
-                draw_line(ONCHIP[i].x, ONCHIP[i].y, ONCHIP[0].x, ONCHIP[0].y, 0x0000);
-            }
-            else
-            {
-                draw_line(ONCHIP[i].x, ONCHIP[i].y, ONCHIP[i + 1].x, ONCHIP[i + 1].y, 0x0000);
-            }
         }
     }
 }
 
 // code for subroutines (not shown)
-void draw()
+void drawMeteor()
 {
     for (int i = 0; i < 8; i++)
     {
-
         // drawing rectangles
         plot_pixel(Box[i].x, Box[i].y, 0x001F);
         plot_pixel(Box[i].x + 1, Box[i].y, 0x001F);
         plot_pixel(Box[i].x, Box[i].y + 1, 0x001F);
         plot_pixel(Box[i].x + 1, Box[i].y + 1, 0x001F);
-
-        // connect last point to first point
-        if (i == 7)
-        {
-            draw_line(Box[i].x, Box[i].y, Box[0].x, Box[0].y, 0xFFFF);
-        }
-        // connect to next rectangle
-        else
-        {
-            draw_line(Box[i].x, Box[i].y, Box[i + 1].x, Box[i + 1].y, 0xFFFF);
-        }
     }
 }
 
@@ -188,57 +160,6 @@ void clear_screen()
         {
             // plot black at every pixel
             plot_pixel(x, y, 0);
-        }
-    }
-}
-
-// draw line function
-void draw_line(int x_start, int y_start, int x_end, int y_end, short int line_color)
-{
-
-    int is_steep = (abs(y_end - y_start)) - (abs(x_end - x_start));
-    //bool is_steep = (abs(y_end - y_start)) > (abs(x_end - x_start))
-    if (is_steep > 0)
-    {
-        int temp_x_start = x_start;
-        int temp_x_end = x_end;
-        x_start = y_start;
-        y_start = temp_x_start;
-        x_end = y_end;
-        y_end = temp_x_end;
-    }
-
-    if (x_start > x_end)
-    {
-        int temp_x = x_start;
-        int temp_y = y_start;
-        x_start = x_end;
-        y_start = y_end;
-        x_end = temp_x;
-        y_end = temp_y;
-    }
-
-    int delta_x = x_end - x_start;      //initialize change of x
-    int delta_y = abs(y_end - y_start); //change of y
-    int error = -(delta_x / 2);         // set error
-    int x, y, y_step;
-
-    if (y_start < y_end)
-        y_step = 1;
-    else
-        y_step = -1;
-
-    for (x = x_start, y = y_start; x < (x_end + 1); x++)
-    {
-        if (is_steep > 0)
-            plot_pixel(y, x, line_color);
-        else
-            plot_pixel(x, y, line_color);
-        error = error + delta_y;
-        if (error >= 0)
-        {
-            y = y + y_step;
-            error = error - delta_x;
         }
     }
 }
