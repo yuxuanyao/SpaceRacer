@@ -1,4 +1,11 @@
 #include <stdbool.h>
+/*-------------Interupts--------------*/
+#include "address_map_arm.h"
+
+volatile int key_dir;
+volatile int pattern;
+void config_KEYs(void);
+/*-------------Interupts--------------*/
 
 volatile int pixel_buffer_start; // global variable
 void clear_screen();
@@ -43,6 +50,8 @@ int main(void)
     // initialize asteroids
     initialize();
 
+    config_KEYs(); // configure pushbutton KEYs to generate interrupts
+
     /* set front pixel buffer to start of FPGA On-chip memory */
     *(pixel_ctrl_ptr + 1) = 0xC8000000; // first store the address in the
                                         // back buffer
@@ -66,9 +75,18 @@ int main(void)
         // code for updating the locations of boxes
         update();
 
+        moveShip();
+
         wait_for_sync();                            // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
     }
+}
+
+void moveShip()
+{
+    Ship1.dy = key_dir;
+    Ship1SDRAM.dy = key_dir;
+    Ship1ONCHIP.dy = key_dir;
 }
 
 void initialize()
@@ -93,17 +111,17 @@ void initialize()
 
     Ship1.x = 319 / 2 - shipWidth / 2;
     Ship1.y = 239 - shipLength - 1;
-    Ship1.dy = -1;
+    Ship1.dy = 0;
     Ship1.dx = 0;
 
     Ship1SDRAM.x = 319 / 2 - shipWidth / 2;
     Ship1SDRAM.y = 239 - shipLength - 1;
-    Ship1SDRAM.dy = -1;
+    Ship1SDRAM.dy = 0;
     Ship1SDRAM.dx = 0;
 
     Ship1ONCHIP.x = 319 / 2 - shipWidth / 2;
     Ship1ONCHIP.y = 239 - shipLength - 1;
-    Ship1ONCHIP.dy = -1;
+    Ship1ONCHIP.dy = 0;
     Ship1ONCHIP.dx = 0;
 }
 
@@ -315,4 +333,30 @@ void swap(int *x, int *y)
     int temp = *x;
     *x = *y;
     *y = temp;
+}
+
+/* setup the KEY interrupts in the FPGA */
+void config_KEYs()
+{
+    volatile int *KEY_ptr = (int *)KEY_BASE; // pushbutton KEY address
+
+    *(KEY_ptr + 2) = 0x3; // enable interrupts for KEY[1]
+}
+/***************************************************************************************
+ * Pushbutton - Interrupt Service Routine
+ *
+ * This routine toggles the key_dir variable from 0 <-> 1
+****************************************************************************************/
+void pushbutton_ISR(void)
+{
+    volatile int *KEY_ptr = (int *)KEY_BASE;
+    int press;
+
+    press = *(KEY_ptr + 3); // read the pushbutton interrupt register
+    *(KEY_ptr + 3) = press; // Clear the interrupt
+
+    // key_dir ^= 1; // Toggle key_dir value
+    key_dir = -1; // Toggle key_dir value
+
+    return;
 }
