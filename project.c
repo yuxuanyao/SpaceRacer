@@ -1,7 +1,7 @@
-#include <stdbool.h>
+
 /*-------------Interupts--------------*/
 #include "address_map_arm.h"
-
+#include <stdbool.h>
 volatile int key_dir;
 volatile int pattern;
 void config_KEYs(void);
@@ -10,6 +10,7 @@ void config_KEYs(void);
 volatile int pixel_buffer_start; // global variable
 void clear_screen();
 void draw_line(int x_start, int y_start, int x_end, int y_end, short int line_color);
+void swap(int *x, int *y);
 void plot_pixel(int x, int y, short int line_color);
 void wait_for_sync();
 void draw();
@@ -75,7 +76,7 @@ int main(void)
         // code for updating the locations of boxes
         update();
 
-        moveShip();
+        // moveShip();
 
         wait_for_sync();                            // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
@@ -355,8 +356,21 @@ void pushbutton_ISR(void)
     press = *(KEY_ptr + 3); // read the pushbutton interrupt register
     *(KEY_ptr + 3) = press; // Clear the interrupt
 
+    if (press)
+    {
+        Ship1.dy = -1;
+        Ship1SDRAM.dy = -1;
+        Ship1ONCHIP.dy = -1;
+    }
+    else
+    {
+        Ship1.dy = 0;
+        Ship1SDRAM.dy = 0;
+        Ship1ONCHIP.dy = 0;
+    }
+
     // key_dir ^= 1; // Toggle key_dir value
-    key_dir = -1; // Toggle key_dir value
+    // key_dir = -1; // Toggle key_dir value
 
     return;
 }
