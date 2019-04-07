@@ -6,13 +6,14 @@ void draw_line(int x_start, int y_start, int x_end, int y_end, short int line_co
 void plot_pixel(int x, int y, short int line_color);
 void wait_for_sync();
 void draw();
-void drawSquare(int x, int y, int sideLength, short int line_color);
+void drawSquare(int x, int y, int length, int width, short int line_color);
 void update();
 void clear();
 void initialize();
 
-#define numAsteroids 20
-#define shipSize 21
+#define numAsteroids 30
+#define shipLength 21
+#define shipWidth 11
 
 struct box
 {
@@ -90,18 +91,18 @@ void initialize()
         SDRAM[i].y = Asteroids[i].y;
     }
 
-    Ship1.x = 319 / 2 - shipSize / 2;
-    Ship1.y = 239 - shipSize - 1;
-    Ship1.dy = 1;
+    Ship1.x = 319 / 2 - shipWidth / 2;
+    Ship1.y = 239 - shipLength - 1;
+    Ship1.dy = -1;
     Ship1.dx = 0;
 
-    Ship1SDRAM.x = 319 / 2 - shipSize / 2;
-    Ship1SDRAM.y = 239 - shipSize - 1;
-    Ship1SDRAM.dy = 1;
+    Ship1SDRAM.x = 319 / 2 - shipWidth / 2;
+    Ship1SDRAM.y = 239 - shipLength - 1;
+    Ship1SDRAM.dy = -1;
     Ship1SDRAM.dx = 0;
 
-    Ship1ONCHIP.x = 319 / 2 - shipSize / 2;
-    Ship1ONCHIP.y = 239 - shipSize - 1;
+    Ship1ONCHIP.x = 319 / 2 - shipWidth / 2;
+    Ship1ONCHIP.y = 239 - shipLength - 1;
     Ship1ONCHIP.dy = -1;
     Ship1ONCHIP.dx = 0;
 }
@@ -120,7 +121,7 @@ void clear()
             plot_pixel(SDRAM[i].x + 1, SDRAM[i].y + 1, 0x0000);
         }
 
-        drawSquare(Ship1SDRAM.x, Ship1SDRAM.y, shipSize, 0x0000);
+        drawSquare(Ship1SDRAM.x, Ship1SDRAM.y, shipLength, shipWidth, 0x0000);
     }
     // if start buffer is On chip memory
     else if (pixel_buffer_start == 0xC8000000)
@@ -132,7 +133,7 @@ void clear()
             plot_pixel(ONCHIP[i].x, ONCHIP[i].y + 1, 0x0000);
             plot_pixel(ONCHIP[i].x + 1, ONCHIP[i].y + 1, 0x0000);
         }
-        drawSquare(Ship1ONCHIP.x, Ship1ONCHIP.y, shipSize, 0x0000);
+        drawSquare(Ship1ONCHIP.x, Ship1ONCHIP.y, shipLength, shipWidth, 0x0000);
     }
 }
 
@@ -151,19 +152,15 @@ void draw()
     }
 
     // draw ship
-    drawSquare(Ship1.x, Ship1.y, shipSize, 0xFFFF);
+    drawSquare(Ship1.x, Ship1.y, shipLength, shipWidth, 0xFFFF);
 }
 
-void drawSquare(int x, int y, int size, short int line_color)
+void drawSquare(int x, int y, int length, int width, short int line_color)
 {
-    // plot_pixel(x, y, 0xFFFF);
-    // plot_pixel(x + size, y, 0xFFFF);
-    // plot_pixel(x, y + size, 0xFFFF);
-    // plot_pixel(x + size, y + size, 0xFFFF);
-    draw_line(x, y, x + size, y, line_color);
-    draw_line(x, y, x, y + size, line_color);
-    draw_line(x + size, y, x + size, y + size, line_color);
-    draw_line(x, y + size, x + size, y + size, line_color);
+    draw_line(x, y, x + width, y, line_color);
+    draw_line(x, y, x, y + length, line_color);
+    draw_line(x + width, y, x + width, y + length, line_color);
+    draw_line(x, y + length, x + width, y + length, line_color);
 }
 
 // update movement of boxes
@@ -211,9 +208,17 @@ void update()
         Ship1ONCHIP.y = Ship1.y;
     }
 
-    if ((Ship1.y + shipSize) >= 239 || Ship1.y <= 0)
+    if (Ship1.y <= 0)
     {
-        Ship1.dy *= -1;
+        Ship1.y = 239 - shipLength - 1;
+    }
+
+    for (int i = 0; i < numAsteroids; ++i)
+    {
+        if ((Asteroids[i].x <= Ship1.x + shipWidth) && (Asteroids[i].x >= Ship1.x) && (Asteroids[i].y <= Ship1.y + shipLength) && (Asteroids[i].y >= Ship1.y))
+        {
+            Ship1.y = 239 - shipLength - 1;
+        }
     }
 
     // actually move the ship
