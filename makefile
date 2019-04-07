@@ -19,26 +19,26 @@ RM		:= rm -f
 USERCCFLAGS	:= -g -O1
 ARCHASFLAGS	:= -mfloat-abi=soft -march=armv7-a -mcpu=cortex-a9 --gstabs -I "$$GNU_ARM_TOOL_ROOTDIR/arm-altera-eabi/include/"
 ARCHCCFLAGS	:= -mfloat-abi=soft -march=armv7-a -mtune=cortex-a9 -mcpu=cortex-a9
-ARCHLDFLAGS	:= --defsym arm_program_mem=0x40 --defsym arm_available_mem_size=0x3fffffb8 --defsym __cs3_stack=0x3ffffff8 --section-start .vectors=0x0
-ARCHLDSCRIPT	:= -T"C:/intelFPGA_lite/18.0/University_Program/Monitor_Program/build/altera-socfpga-hosted-with-vectors.ld"
+ARCHLDFLAGS	:= --defsym arm_program_mem=0x0 --defsym arm_available_mem_size=0x3ffffff8 --defsym __cs3_stack=0x3ffffff8
+ARCHLDSCRIPT	:= -T"C:/intelFPGA_lite/18.0/University_Program/Monitor_Program/build/altera-socfpga-hosted.ld"
 ASFLAGS		:= $(ARCHASFLAGS)
 CCFLAGS		:= -Wall -c $(USERCCFLAGS) $(ARCHCCFLAGS)
 LDFLAGS		:= $(patsubst %, -Wl$(DEFINE_COMMA)%, $(ARCHLDFLAGS)) $(ARCHLDSCRIPT)
 OCFLAGS		:= -O srec
 
 # Files
-HDRS		:= defines.h interrupt_ID.h address_map_arm.h
-SRCS		:= interrupt_example.c exceptions.c HPS_timer_ISR.c interval_timer_ISR.c pushbutton_ISR.c project.c
+HDRS		:=
+SRCS		:= project.c
 OBJS		:= $(patsubst %, %.o, $(SRCS))
 
 # Targets
-compile: interrupt_example.srec
+compile: project.srec
 
-interrupt_example.srec: interrupt_example.axf
+project.srec: project.axf
 	$(RM) $@
 	$(OC) $(OCFLAGS) $< $@
 
-interrupt_example.axf: $(OBJS)
+project.axf: $(OBJS)
 	$(RM) $@
 	$(CC) $(LDFLAGS) $(OBJS) -o $@
 
@@ -51,5 +51,5 @@ interrupt_example.axf: $(OBJS)
 	$(AS) $(ASFLAGS) $< -o $@
 
 clean:
-	$(RM) interrupt_example.srec interrupt_example.axf $(OBJS)
+	$(RM) project.srec project.axf $(OBJS)
 
