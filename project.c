@@ -154,7 +154,7 @@ void clear();
 void initialize();
 void checkKeyPress();
 
-#define numAsteroids 5
+#define numAsteroids 15
 #define shipLength 21
 #define shipWidth 11
 #define PUSHBUTTONS ((volatile long *)0xFF200050)
@@ -392,12 +392,7 @@ void update()
         if ((Asteroids[i].x) >= 319 || Asteroids[i].x <= 0)
         {
             Asteroids[i].dx *= -1;
-        }
-
-        // if reached top side or bottom side, reverse direction
-        if ((Asteroids[i].y) >= 239 || Asteroids[i].y <= 0)
-        {
-            Asteroids[i].dy *= -1;
+            Asteroids[i].y = rand() % 239;
         }
 
         // actually move
