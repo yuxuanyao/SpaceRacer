@@ -136,6 +136,8 @@
 volatile int Ship1dy;
 volatile int pattern;
 void config_KEYs(void);
+void pushbutton_ISR(void);
+void config_GIC(void);
 /*-------------Interupts--------------*/
 
 volatile int pixel_buffer_start; // global variable
@@ -149,10 +151,12 @@ void drawSquare(int x, int y, int length, int width, short int line_color);
 void update();
 void clear();
 void initialize();
+void checkKeyPress();
 
-#define numAsteroids 30
+#define numAsteroids 5
 #define shipLength 21
 #define shipWidth 11
+#define PUSHBUTTONS ((volatile long *)0xFF200050)
 
 struct box
 {
@@ -182,8 +186,6 @@ int main(void)
     // initialize asteroids
     initialize();
 
-    config_KEYs(); // configure pushbutton KEYs to generate interrupts
-
     /* set front pixel buffer to start of FPGA On-chip memory */
     *(pixel_ctrl_ptr + 1) = 0xC8000000; // first store the address in the
                                         // back buffer
@@ -204,11 +206,28 @@ int main(void)
         // code for drawing the boxes and lines
         draw();
 
+        checkKeyPress();
         // code for updating the locations of boxes
         update();
 
         wait_for_sync();                            // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+    }
+}
+
+void checkKeyPress()
+{
+    if (*PUSHBUTTONS == 0b0010)
+    {
+        Ship1dy = -1;
+    }
+    else if (*PUSHBUTTONS == 0b0001)
+    {
+        Ship1dy = 1;
+    }
+    else
+    {
+        Ship1dy = 0;
     }
 }
 
@@ -344,7 +363,7 @@ void update()
         Ship1ONCHIP.y = Ship1.y;
     }
 
-    if (Ship1.y <= 0)
+    if (Ship1.y <= 0 || Ship1.y + shipLength >= 239)
     {
         Ship1.y = 239 - shipLength - 1;
     }
@@ -451,32 +470,4 @@ void swap(int *x, int *y)
     int temp = *x;
     *x = *y;
     *y = temp;
-}
-
-/* setup the KEY interrupts in the FPGA */
-void config_KEYs()
-{
-    volatile int *KEY_ptr = (int *)KEY_BASE; // pushbutton KEY address
-
-    *(KEY_ptr + 2) = 0x3; // enable interrupts for KEY[1]
-}
-
-void pushbutton_ISR(void)
-{
-    volatile int *KEY_ptr = (int *)KEY_BASE;
-    int press;
-
-    press = *(KEY_ptr + 3); // read the pushbutton interrupt register
-    *(KEY_ptr + 3) = press; // Clear the interrupt
-
-    if (press & 0x1)
-    {
-        Ship1dy = -1;
-    }
-    else
-    {
-        Ship1dy = 0;
-    }
-
-    return;
 }
