@@ -134,10 +134,11 @@
 /*-------------Interupts--------------*/
 #include <stdbool.h>
 volatile int Ship1dy;
-volatile int pattern;
-void config_KEYs(void);
-void pushbutton_ISR(void);
-void config_GIC(void);
+volatile int Ship2dy;
+
+// void config_KEYs(void);
+// void pushbutton_ISR(void);
+// void config_GIC(void);
 /*-------------Interupts--------------*/
 
 volatile int pixel_buffer_start; // global variable
@@ -176,9 +177,14 @@ struct prevLocation
 struct prevLocation SDRAM[numAsteroids];
 struct prevLocation ONCHIP[numAsteroids];
 struct box Asteroids[numAsteroids];
+
 struct box Ship1;
 struct prevLocation Ship1SDRAM;
 struct prevLocation Ship1ONCHIP;
+
+struct box Ship2;
+struct prevLocation Ship2SDRAM;
+struct prevLocation Ship2ONCHIP;
 
 int main(void)
 {
@@ -217,17 +223,51 @@ int main(void)
 
 void checkKeyPress()
 {
-    if (*PUSHBUTTONS == 0b0010)
+
+    if (*PUSHBUTTONS == 0b0001 || *PUSHBUTTONS == 0b1101)
     {
+        Ship1dy = 0;
+        Ship2dy = 1;
+    }
+    else if (*PUSHBUTTONS == 0b0010 || *PUSHBUTTONS == 0b1110)
+    {
+        Ship1dy = 0;
+        Ship2dy = -1;
+    }
+    else if (*PUSHBUTTONS == 0b0100 || *PUSHBUTTONS == 0b0111)
+    {
+        Ship2dy = 0;
+        Ship1dy = 1;
+    }
+    else if (*PUSHBUTTONS == 0b1000 || *PUSHBUTTONS == 0b1011)
+    {
+        Ship2dy = 0;
         Ship1dy = -1;
     }
-    else if (*PUSHBUTTONS == 0b0001)
+    else if (*PUSHBUTTONS == 0b1001)
+    {
+        Ship2dy = 1;
+        Ship1dy = -1;
+    }
+    else if (*PUSHBUTTONS == 0b0110)
     {
         Ship1dy = 1;
+        Ship2dy = -1;
+    }
+    else if (*PUSHBUTTONS == 0b0101)
+    {
+        Ship1dy = 1;
+        Ship2dy = 1;
+    }
+    else if (*PUSHBUTTONS == 0b1010)
+    {
+        Ship1dy = -1;
+        Ship2dy = -1;
     }
     else
     {
         Ship1dy = 0;
+        Ship2dy = 0;
     }
 }
 
@@ -251,15 +291,25 @@ void initialize()
         SDRAM[i].y = Asteroids[i].y;
     }
 
-    Ship1.x = 319 / 2 - shipWidth / 2;
+    Ship1.x = 319 / 4 - shipWidth / 2;
     Ship1.y = 239 - shipLength - 1;
     Ship1dy = 0; // initialize ship1dy
 
-    Ship1SDRAM.x = 319 / 2 - shipWidth / 2;
+    Ship1SDRAM.x = 319 / 4 - shipWidth / 2;
     Ship1SDRAM.y = 239 - shipLength - 1;
 
-    Ship1ONCHIP.x = 319 / 2 - shipWidth / 2;
+    Ship1ONCHIP.x = 319 / 4 - shipWidth / 2;
     Ship1ONCHIP.y = 239 - shipLength - 1;
+
+    Ship2.x = 319 * 3 / 4 - shipWidth / 2;
+    Ship2.y = 239 - shipLength - 1;
+    Ship2dy = 0; // initialize ship1dy
+
+    Ship2SDRAM.x = 319 * 3 / 4 - shipWidth / 2;
+    Ship2SDRAM.y = 239 - shipLength - 1;
+
+    Ship2ONCHIP.x = 319 * 3 / 4 - shipWidth / 2;
+    Ship2ONCHIP.y = 239 - shipLength - 1;
 }
 
 // override the previous lines with black, depending on which was the previous buffer
@@ -277,6 +327,7 @@ void clear()
         }
 
         drawSquare(Ship1SDRAM.x, Ship1SDRAM.y, shipLength, shipWidth, 0x0000);
+        drawSquare(Ship2SDRAM.x, Ship2SDRAM.y, shipLength, shipWidth, 0x0000);
     }
     // if start buffer is On chip memory
     else if (pixel_buffer_start == 0xC8000000)
@@ -289,6 +340,7 @@ void clear()
             plot_pixel(ONCHIP[i].x + 1, ONCHIP[i].y + 1, 0x0000);
         }
         drawSquare(Ship1ONCHIP.x, Ship1ONCHIP.y, shipLength, shipWidth, 0x0000);
+        drawSquare(Ship2ONCHIP.x, Ship2ONCHIP.y, shipLength, shipWidth, 0x0000);
     }
 }
 
@@ -308,6 +360,7 @@ void draw()
 
     // draw ship
     drawSquare(Ship1.x, Ship1.y, shipLength, shipWidth, 0xFFFF);
+    drawSquare(Ship2.x, Ship2.y, shipLength, shipWidth, 0xFFFF);
 }
 
 void drawSquare(int x, int y, int length, int width, short int line_color)
@@ -356,16 +409,24 @@ void update()
     {
         Ship1SDRAM.x = Ship1.x;
         Ship1SDRAM.y = Ship1.y;
+        Ship2SDRAM.x = Ship2.x;
+        Ship2SDRAM.y = Ship2.y;
     }
     else if (pixel_buffer_start == 0xC8000000)
     {
         Ship1ONCHIP.x = Ship1.x;
         Ship1ONCHIP.y = Ship1.y;
+        Ship2ONCHIP.x = Ship2.x;
+        Ship2ONCHIP.y = Ship2.y;
     }
 
     if (Ship1.y <= 0 || Ship1.y + shipLength >= 239)
     {
         Ship1.y = 239 - shipLength - 1;
+    }
+    if (Ship2.y <= 0 || Ship2.y + shipLength >= 239)
+    {
+        Ship2.y = 239 - shipLength - 1;
     }
 
     for (int i = 0; i < numAsteroids; ++i)
@@ -374,10 +435,16 @@ void update()
         {
             Ship1.y = 239 - shipLength - 1;
         }
+
+        if ((Asteroids[i].x <= Ship2.x + shipWidth) && (Asteroids[i].x >= Ship2.x) && (Asteroids[i].y <= Ship2.y + shipLength) && (Asteroids[i].y >= Ship2.y))
+        {
+            Ship2.y = 239 - shipLength - 1;
+        }
     }
 
     // actually move the ship
     Ship1.y += Ship1dy;
+    Ship2.y += Ship2dy;
 }
 
 // clears screen by drawing all black
